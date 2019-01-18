@@ -1,39 +1,39 @@
 <?php
 
 function gd_resize($image_path, $name, $rwidth=false, $rheight=false){
-	
+
 	list($width, $height) = getimagesize($image_path);
-	
+
 	if( !$rwidth ) $rwidth = $rheight * $width / $height;
 	if( !$rheight ) $rheight = $rwidth * $height / $width;
-	
+
 	if( $rwidth > $width && $rheight > $height){
 		return $image_path;
 	}
 	else if( $rwidth > $width ) $rwidth = $width;
 	else if( $rheight > $height ) $rheight = $height;
-		
-	
+
+
 	$im = imagecreatetruecolor($rwidth, $rheight);
 	$src = imagecreatefromstring(file_get_contents($image_path));
 	imagecopyresampled($im, $src, 0, 0, 0, 0, $rwidth, $rheight, $width, $height);
-	
-	imagejpeg($im, $name, 100);
+
+	imagejpeg($im, $name, QUALITY);
 	imagedestroy($im);
 	imagedestroy($src);
-	
+
 	return $name;
 }
 
 function gd_crop($image_path, $name, $rwidth=false, $rheight=false, $center='center'){
-	
+
 	list($width, $height) = getimagesize($image_path);
 	if(!$rwidth) $rwidth = $rheight * $width / $height;
 	if(!$rheight) $rheight = $rwidth * $height / $width;
-	
+
 	$cpoint_s = array($width/2,$height/2);
 	$cpoint_r = array($rwidth/2,$rheight/2);
-	
+
 	if(strpos($center,'.') !== false){
 		$pos = explode('.',$center);
 		$left = $pos[0];
@@ -52,23 +52,23 @@ function gd_crop($image_path, $name, $rwidth=false, $rheight=false, $center='cen
 			default: return false;
 		}
 	}
-	
+
 	//convert center to position
 	$left -= $cpoint_r[0];
 	$top -= $cpoint_r[1];
-	
+
 	//normalize position and dimension
 	if($top<0){ $rheight += $top; $top = 0; }
 	if($left<0){ $rwidth += $left; $left = 0; }
-	
+
 	//normalize dimension
 	if(($top+$rheight)>$height) { $rheight = $height - $top; }
 	if(($left+$rwidth)>$width) { $rwidth = $width - $left; }
-	
+
 	$im = imagecreatetruecolor($rwidth, $rheight);
 	$src = imagecreatefromstring(file_get_contents($image_path));
 	imagecopyresampled($im, $src, 0, 0, $left, $top, $rwidth, $rheight, $rwidth, $rheight);
-	
+
 	imagejpeg($im, $name, 100);
 	imagedestroy($im);
 	imagedestroy($src);
@@ -83,17 +83,17 @@ function gd_crop($image_path, $name, $rwidth=false, $rheight=false, $center='cen
 /** Apply and deliver the image and clean up */
 function gd_filter_image($image_path, $name, $filter_name)
 {
-	
+
 	$filter = 'gd_filter_' . $filter_name;
 	if (function_exists($filter)) {
 		list($width, $height) = getimagesize($image_path);
-		
+
 		$im = imagecreatetruecolor($width, $height);
 		$src = imagecreatefromstring(file_get_contents($image_path));
 		imagecopyresampled($im, $src, 0, 0, 0, 0, $width, $height, $width, $height);
-		
+
 		$im = $filter($im);
-		
+
 		imagejpeg($im, $name, 100);
 		imagedestroy($im);
 		imagedestroy($src);
@@ -229,22 +229,22 @@ function gd_apply_overlay($im, $type, $amount)
 	$width = imagesx($im);
 	$height = imagesy($im);
 	$filter = imagecreatetruecolor($width, $height);
-	
+
 	imagealphablending($filter, false);
 	imagesavealpha($filter, true);
-	
+
 	$transparent = imagecolorallocatealpha($filter, 255, 255, 255, 127);
 	imagefilledrectangle($filter, 0, 0, $width, $height, $transparent);
-	
+
 	$overlay = 'filters/' . $type . '.png';
 	$png = imagecreatefrompng($overlay);
 	imagecopyresampled($filter, $png, 0, 0, 0, 0, $width, $height, $width, $height);
-	
+
 	$comp = imagecreatetruecolor($width, $height);
 	imagecopy($comp, $im, 0, 0, 0, 0, $width, $height);
 	imagecopy($comp, $filter, 0, 0, 0, 0, $width, $height);
 	imagecopymerge($im, $comp, 0, 0, 0, 0, $width, $height, $amount);
-	
+
 	imagedestroy($comp);
 	return $im;
 }
